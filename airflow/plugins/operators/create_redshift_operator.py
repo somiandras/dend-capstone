@@ -17,11 +17,11 @@ class CreateRedshiftClusterOperator(BaseOperator):
         self,
         *args,
         aws_credentials_id="aws_default",
-        configpath="config/redshift.cfg",
+        config="config/redshift.cfg",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.configpath = configpath
+        self.config = config
         self.aws_credentials_id = aws_credentials_id
 
     def execute(self, context):
@@ -32,11 +32,9 @@ class CreateRedshiftClusterOperator(BaseOperator):
         Args:
             configpath (str): path to cluster config file
         """
-        config = ConfigParser()
-        config.read(self.configpath)
         session = Session()
 
-        cluster_id = config.get("CLUSTER", "CLUSTER_ID")
+        cluster_id = self.config.get("CLUSTER", "CLUSTER_ID")
 
         aws_hook = AwsHook(self.aws_credentials_id)
         aws_credentials = aws_hook.get_credentials()
@@ -51,26 +49,26 @@ class CreateRedshiftClusterOperator(BaseOperator):
         try:
             response = redshift.create_cluster(
                 ClusterIdentifier=cluster_id,
-                ClusterType=config.get("CLUSTER", "CLUSTER_TYPE"),
-                NodeType=config.get("CLUSTER", "NODE_TYPE"),
-                NumberOfNodes=int(config.get("CLUSTER", "NUMBER_OF_NODES")),
-                DBName=config.get("CLUSTER", "DB_NAME"),
-                Port=int(config.get("CLUSTER", "DB_PORT")),
-                MasterUsername=config.get("CLUSTER", "DB_USER"),
-                MasterUserPassword=config.get("CLUSTER", "DB_PASSWORD"),
-                IamRoles=[config.get("IAM_ROLE", "ARN")],
+                ClusterType=self.config.get("CLUSTER", "CLUSTER_TYPE"),
+                NodeType=self.config.get("CLUSTER", "NODE_TYPE"),
+                NumberOfNodes=int(self.config.get("CLUSTER", "NUMBER_OF_NODES")),
+                DBName=self.config.get("CLUSTER", "DB_NAME"),
+                Port=int(self.config.get("CLUSTER", "DB_PORT")),
+                MasterUsername=self.config.get("CLUSTER", "DB_USER"),
+                MasterUserPassword=self.config.get("CLUSTER", "DB_PASSWORD"),
+                IamRoles=[self.config.get("IAM_ROLE", "ARN")],
             )
             logging.info(f"{cluster_id} created")
             logging.info(response)
         except redshift.exceptions.ClusterAlreadyExistsFault:
             logging.info(f"{cluster_id} already exists")
-            self.save_connection(session, cluster_id, config)
+            self.save_connection(session, cluster_id, self.config)
             session.commit()
         except Exception as e:
             session.rollback()
             raise AirflowFailException(e)
         else:
-            self.save_connection(session, cluster_id, config)
+            self.save_connection(session, cluster_id, self.config)
             session.commit()
 
     def save_connection(self, session, cluster_id, config):

@@ -29,6 +29,7 @@ start_dag_task = DummyOperator(task_id="start_dag")
 create_redshift_task = CreateRedshiftClusterOperator(
     task_id="create_redshift_cluster",
     dag=dag,
+    config=redshift_config,
 )
 
 wait_for_redshift_task = AwsRedshiftClusterSensor(
