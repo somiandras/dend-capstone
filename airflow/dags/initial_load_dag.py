@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.sensors.aws_redshift_cluster_sensor import AwsRedshiftClusterSensor
-from airflow.operators import CreateRedshiftClusterOperator
+from airflow.operators import CreateRedshiftClusterOperator, SaveRedshiftHostOperator
 
 redshift_config = ConfigParser()
 redshift_config.read("config/redshift.cfg")
@@ -37,8 +37,13 @@ wait_for_redshift_task = AwsRedshiftClusterSensor(
     dag=dag,
 )
 
+save_redshift_endpoint_task = SaveRedshiftHostOperator(
+    task_id="save_redshift_endpoint", cluster_identifier=redshift_cluster_id, dag=dag
+)
+
 end_dag_task = DummyOperator(task_id="end_dag")
 
 start_dag_task >> create_redshift_task
 create_redshift_task >> wait_for_redshift_task
-wait_for_redshift_task >> end_dag_task
+wait_for_redshift_task >> save_redshift_endpoint_task
+save_redshift_endpoint_task >> end_dag_task

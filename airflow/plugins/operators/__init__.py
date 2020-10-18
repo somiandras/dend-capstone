@@ -1,3 +1,4 @@
 from operators.create_redshift_operator import CreateRedshiftClusterOperator
+from operators.save_redshift_endpoint import SaveRedshiftHostOperator
 
-__all__ = [CreateRedshiftClusterOperator]
+__all__ = [CreateRedshiftClusterOperator, SaveRedshiftHostOperator]

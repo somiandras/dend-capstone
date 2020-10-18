@@ -7,4 +7,5 @@ class CapstonePlugin(AirflowPlugin):
     name = "capstone_plugin"
     operators = [
         operators.CreateRedshiftClusterOperator,
+        operators.SaveRedshiftHostOperator,
     ]
