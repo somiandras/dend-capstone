@@ -53,7 +53,7 @@ class SaveRedshiftHostOperator(BaseOperator):
             logging.info(f"Adding {cluster_id} to Airflow connections")
             session.add(
                 Connection(
-                    conn_id=cluster_id,
+                    conn_id="redshift_default",
                     conn_type="postgres",
                     login=self.config.get("CLUSTER", "DB_USER"),
                     password=self.config.get("CLUSTER", "DB_PASSWORD"),
