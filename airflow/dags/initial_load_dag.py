@@ -39,7 +39,10 @@ wait_for_redshift_task = AwsRedshiftClusterSensor(
 )
 
 save_redshift_endpoint_task = SaveRedshiftHostOperator(
-    task_id="save_redshift_endpoint", cluster_identifier=redshift_cluster_id, dag=dag
+    task_id="save_redshift_endpoint",
+    cluster_identifier=redshift_cluster_id,
+    dag=dag,
+    config=redshift_config,
 )
 
 end_dag_task = DummyOperator(task_id="end_dag")

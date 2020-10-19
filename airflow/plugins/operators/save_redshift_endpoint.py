@@ -8,11 +8,16 @@ from airflow.contrib.hooks.aws_hook import AwsHook
 
 
 class SaveRedshiftHostOperator(BaseOperator):
+    """
+    Request endpoint URL for cluster_id and save Redshift connection.
+    """
+
     ui_color = "#86bdf0"
 
     @apply_defaults
     def __init__(
         self,
+        config,
         *args,
         aws_credentials_id="aws_default",
         cluster_identifier="",
@@ -21,6 +26,7 @@ class SaveRedshiftHostOperator(BaseOperator):
         super().__init__(*args, **kwargs)
         self.aws_credentials_id = aws_credentials_id
         self.cluster_id = cluster_identifier
+        self.config = config
 
     def execute(self, context):
         aws_hook = AwsHook(self.aws_credentials_id)
@@ -31,6 +37,7 @@ class SaveRedshiftHostOperator(BaseOperator):
             aws_access_key_id=aws_credentials.access_key,
             aws_secret_access_key=aws_credentials.secret_key,
         )
+        cluster_id = self.config.get("CLUSTER", "CLUSTER_ID")
         logging.info(f"Requesting Redshift cluster endpoint for {self.cluster_id}")
         cluster = redshift.describe_clusters(ClusterIdentifier=self.cluster_id)[
             "Clusters"
@@ -42,6 +49,20 @@ class SaveRedshiftHostOperator(BaseOperator):
             .filter(Connection.conn_id == self.cluster_id)
             .first()
         )
-        redshift_connection.host = endpoint
+        if redshift_connection is None:
+            logging.info(f"Adding {cluster_id} to Airflow connections")
+            session.add(
+                Connection(
+                    conn_id=cluster_id,
+                    conn_type="postgres",
+                    login=self.config.get("CLUSTER", "DB_USER"),
+                    password=self.config.get("CLUSTER", "DB_PASSWORD"),
+                    schema=self.config.get("CLUSTER", "DB_NAME"),
+                    port=int(self.config.get("CLUSTER", "DB_PORT")),
+                    host=endpoint,
+                )
+            )
+        else:
+            redshift_connection.host = endpoint
         session.commit()
-        logging.info(f"Endpoint saved: {endpoint}")
+        logging.info(f"Connection saved: {endpoint}")
