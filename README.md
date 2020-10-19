@@ -12,37 +12,51 @@ For the basis of the project I chose the famous __NYC taxi trips__ dataset. This
 
 ## Goal of the Project
 
-For this project I will assume that all trips included in the source data belong to a single taxi company. The goal of the project is to setup a relatively simple data warehouse on AWS that can provide the management of this imaginative taxi company with timely, high level view and the possibility to drill down and gain deeper insights about the performance of the company.
+For the project I assumed that all trips included in the source data belong to a single taxi company. The goal of the project is to setup a data warehouse on AWS that can provide the management of this imaginative taxi company with high level view and the possibility to drill down and gain deeper insights about the performance of the company.
 
 ## Datasets
 
 ### 1. NYC Taxi & Limousine Commission (TLC) Trip Record Data
 
-This is the base "transactional" dataset, containing millions of individual taxi trips. The individual files are availabile in a public S3 bucket.
-
 Source: [https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page](https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
+
+This is the base "transactional" dataset, containing millions of individual taxi trips. The individual files are availabile in a public S3 bucket.
 
 ### 2. NYC TLC Taxi Zone Lookup Table
 
-This is supplementary data for identifying the zones where the individual trips started or ended. Ideal for adding a geographical dimension to the analysis.
-
 Source: [https://s3.amazonaws.com/nyc-tlc/misc/taxi+_zone_lookup.csv](https://s3.amazonaws.com/nyc-tlc/misc/taxi+_zone_lookup.csv)
+
+This is supplementary data for identifying the zones where the individual trips started or ended. Ideal for adding a geographical dimension to the analysis.
 
 ### 3. NOAA Daily Weather Data
 
-This is a separate data source adding weather information to the trip data. I requested the file for this project via website of NOAA. The data seems incomplete in some places, therefore ideal for practicing how to handle missing datapoints in a pipeline.
-
 Source: [https://www.ncdc.noaa.gov/cdo-web/datasets#GHCND](https://www.ncdc.noaa.gov/cdo-web/datasets#GHCND)
 
-## Technologies Used
+This is a separate data source which adds weather information to the trip data. I requested the file for this project via website of NOAA.
 
-[WIP]
+## Technologies/Services Used
+
+- Airflow
+- S3
+- Amazon Redshift
 
 ## Processing Steps
 
-### 1. Gathering Data
+### 1. Preprocessing
 
-### 2. ETL
+The original csv file from NOAA contained daily observations from 134 weather stations in New York, New Jersey and Connecticut, from 2017-01-01 to 2020-07-31.
+
+In order to simulate loading from different formats and to preprocess the datafile, I filtered the columns, split up the csv file into daily JSON files, and uploaded them to the S3 bucket in the following format: `s3://dend-projects-somi/weather/<YEAR-MONTH>/weather-<DATE>.json`.
+
+### 2. Setting up Redshift
+
+### 3. ETL
+
+#### 3.1 Staging
+
+#### 3.2 Final Load
+
+#### 3.3 Daily Runs
 
 ## How to Run the Project
 
@@ -58,10 +72,10 @@ Source: [https://www.ncdc.noaa.gov/cdo-web/datasets#GHCND](https://www.ncdc.noaa
 
 ### Security
 
-## What If...
+## What If's
 
-### ...the data was increased by 100x?
+### Whaat if the data was increased by 100x
 
-### ...the pipelines would be run on a daily basis by 7 am every day?
+### Whaat if the pipelines would be run on a daily basis by 7 am every day
 
-### ...the database needed to be accessed by 100+ people?
+### Whaat if the database needed to be accessed by 100+ people
