@@ -44,7 +44,7 @@ def split_and_upload():
         path = f"weather/{month_str}/weather-{date_str}.json"
 
         try:
-            s3.Object("dend-projects-somi", path).put(Body=buffer.getvalue())
+            s3.Object("dend-capstone-somi", path).put(Body=buffer.getvalue())
         except Exception as e:
             logging.error(e)
         else:
