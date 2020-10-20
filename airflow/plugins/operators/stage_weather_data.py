@@ -9,16 +9,7 @@ from airflow.utils.decorators import apply_defaults
 import pendulum
 
 
-class StageTripData(BaseOperator):
-    """
-    Operator for staging NYC taxi trip data to Redshift. Loads data for
-    period since last successful run if there is one. If not, it imports
-    starting from `min_date`.
-    """
-
-    ui_color = "#358140"
-
-    @apply_defaults
+class StageWeatherData(BaseOperator):
     def __init__(
         self,
         *args,
@@ -67,16 +58,8 @@ class StageTripData(BaseOperator):
                 access_key_id '{creds.access_key}'
                 secret_access_key '{creds.secret_key}'
                 region 'us-east-1'
-                csv
-                delimiter ','
-                ignoreheader 1
+                json 'auto'
                 manifest;
-
-                -- Remove trips that fall outside of date range
-                delete from {self.table}
-                where
-                    tpep_pickup_datetime < '{start_date.to_date_string()}'::date or
-                    tpep_pickup_datetime > '{end_date.to_date_string()}'::date;
             """
         )
         logging.info(f"Copied data from {source_path}")
@@ -95,10 +78,10 @@ class StageTripData(BaseOperator):
         manifest = dict(
             entries=[
                 {
-                    "url": f"s3://nyc-tlc/trip data/yellow_tripdata_{month.to_date_string()[:7]}.csv",
+                    "url": f"s3://{self.s3_bucket}/weather/{date.to_date_string()[:7]}/weather-{date.to_date_string()}.json",
                     "mandatory": False,
                 }
-                for month in period.range("months")
+                for date in period.range("days")
             ]
         )
 
@@ -106,10 +89,10 @@ class StageTripData(BaseOperator):
         logging.info("Saving new manifest")
         s3_hook.load_bytes(
             json.dumps(manifest, indent=2).encode(),
-            key="trip_manifest.json",
+            key="weather_manifest.json",
             bucket_name=self.manifest_bucket,
             replace=True,
         )
-        manifest_path = f"s3://{self.manifest_bucket}/trip_manifest.json"
+        manifest_path = f"s3://{self.manifest_bucket}/weather_manifest.json"
         logging.info(f"Saved manifest to {manifest_path}")
         return manifest_path

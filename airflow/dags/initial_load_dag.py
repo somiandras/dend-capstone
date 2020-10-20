@@ -9,6 +9,7 @@ from airflow.operators import (
     CreateRedshiftClusterOperator,
     SaveRedshiftHostOperator,
     StageTripData,
+    StageWeatherData,
 )
 
 redshift_config = ConfigParser()
@@ -50,7 +51,7 @@ save_redshift_endpoint_task = SaveRedshiftHostOperator(
     config=redshift_config,
 )
 
-create_stage_table_task = PostgresOperator(
+create_trip_stage_table_task = PostgresOperator(
     task_id="create_trip_stage_table",
     sql=[
         "create schema if not exists stage;",
@@ -86,6 +87,41 @@ stage_trip_data_task = StageTripData(
     min_date=datetime(2020, 6, 1),
     dag=dag,
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    s3_bucket="nyc-tlc",
+    s3_key="trip data",
+)
+
+create_weather_stage_table_task = PostgresOperator(
+    task_id="create_weather_stage_table",
+    sql=[
+        "create schema if not exists stage;",
+        "drop table if exists stage.weather",
+        """create table if not exists stage.weather (
+            STATION varchar,
+            NAME varchar,
+            LATITUDE float,
+            LONGITUDE float,
+            ELEVATION float,
+            DATE bigint,
+            AWND float,
+            PRCP float,
+            SNOW float,
+            TMAX float,
+            TMIN float
+        );""",
+    ],
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
+)
+
+stage_weather_data_task = StageWeatherData(
+    task_id="stage_weather_data",
+    table="stage.weather",
+    min_date=datetime(2020, 6, 1),
+    dag=dag,
+    s3_bucket="dend-capstone-somi",
+    s3_key="weather",
+    redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
 )
 
 end_dag_task = DummyOperator(task_id="end_dag", dag=dag)
@@ -93,6 +129,11 @@ end_dag_task = DummyOperator(task_id="end_dag", dag=dag)
 start_dag_task >> create_redshift_task
 create_redshift_task >> wait_for_redshift_task
 wait_for_redshift_task >> save_redshift_endpoint_task
-save_redshift_endpoint_task >> create_stage_table_task
-create_stage_table_task >> stage_trip_data_task
+
+save_redshift_endpoint_task >> create_trip_stage_table_task
+create_trip_stage_table_task >> stage_trip_data_task
 stage_trip_data_task >> end_dag_task
+
+save_redshift_endpoint_task >> create_weather_stage_table_task
+create_weather_stage_table_task >> stage_weather_data_task
+stage_weather_data_task >> end_dag_task

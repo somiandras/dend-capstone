@@ -9,4 +9,5 @@ class CapstonePlugin(AirflowPlugin):
         operators.CreateRedshiftClusterOperator,
         operators.SaveRedshiftHostOperator,
         operators.StageTripData,
+        operators.StageWeatherData,
     ]
