@@ -10,6 +10,7 @@ from airflow.operators import (
     SaveRedshiftHostOperator,
     StageTripData,
     StageWeatherData,
+    StageZoneData,
 )
 
 redshift_config = ConfigParser()
@@ -124,6 +125,33 @@ stage_weather_data_task = StageWeatherData(
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
 )
 
+create_zone_stage_table_task = PostgresOperator(
+    task_id="create_zone_stage_table",
+    sql=[
+        "create schema if not exists stage;",
+        "drop table if exists stage.zone",
+        """create table if not exists stage.zone (
+            LocationID int,
+            Borough varchar,
+            Zone varchar,
+            service_zone varchar
+        );""",
+    ],
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
+)
+
+stage_zone_data_task = StageZoneData(
+    task_id="stage_zone_data",
+    table="stage.zone",
+    redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    s3_bucket="nyc-tlc",
+    s3_key="misc/taxi _zone_lookup.csv",
+    dag=dag,
+)
+
+stage_ready_task = DummyOperator(task_id="stage_ready", dag=dag)
+
 end_dag_task = DummyOperator(task_id="end_dag", dag=dag)
 
 start_dag_task >> create_redshift_task
@@ -132,8 +160,14 @@ wait_for_redshift_task >> save_redshift_endpoint_task
 
 save_redshift_endpoint_task >> create_trip_stage_table_task
 create_trip_stage_table_task >> stage_trip_data_task
-stage_trip_data_task >> end_dag_task
+stage_trip_data_task >> stage_ready_task
 
 save_redshift_endpoint_task >> create_weather_stage_table_task
 create_weather_stage_table_task >> stage_weather_data_task
-stage_weather_data_task >> end_dag_task
+stage_weather_data_task >> stage_ready_task
+
+save_redshift_endpoint_task >> create_zone_stage_table_task
+create_zone_stage_table_task >> stage_zone_data_task
+stage_zone_data_task >> stage_ready_task
+
+stage_ready_task >> end_dag_task
