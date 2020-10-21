@@ -13,7 +13,7 @@ class CreateRedshiftClusterOperator(BaseOperator):
     Create Redshift cluster from config.
     """
 
-    ui_color = "#a464d1"
+    ui_color = "#75e1ff"
 
     @apply_defaults
     def __init__(

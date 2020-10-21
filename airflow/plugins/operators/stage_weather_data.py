@@ -10,6 +10,8 @@ import pendulum
 
 
 class StageWeatherData(BaseOperator):
+    ui_color = "#75e1ff"
+
     def __init__(
         self,
         *args,

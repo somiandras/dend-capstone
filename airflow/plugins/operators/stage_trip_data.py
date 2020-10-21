@@ -16,7 +16,7 @@ class StageTripData(BaseOperator):
     starting from `min_date`.
     """
 
-    ui_color = "#358140"
+    ui_color = "#75e1ff"
 
     @apply_defaults
     def __init__(

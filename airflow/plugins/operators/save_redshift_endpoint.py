@@ -12,7 +12,7 @@ class SaveRedshiftHostOperator(BaseOperator):
     Request endpoint URL for cluster_id and save Redshift connection.
     """
 
-    ui_color = "#86bdf0"
+    ui_color = "#75e1ff"
 
     @apply_defaults
     def __init__(
