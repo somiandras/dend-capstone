@@ -97,6 +97,23 @@ create_analytics_tables_task = PostgresOperator(
     dag=dag,
 )
 
+insert_zone_data_task = PostgresOperator(
+    task_id="insert_zone_data",
+    sql=[
+        "truncate analytics.zone;",
+        "insert into analytics.zone select * from stage.zone;",
+    ],
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
+)
+
+insert_trip_data_task = PostgresOperator(
+    task_id="insert_trip_data",
+    sql="sql/insert_trip_data.sql",
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
+)
+
 end_dag_task = DummyOperator(task_id="end_dag", dag=dag)
 
 start_dag_task >> create_redshift_task
@@ -113,8 +130,11 @@ stage_trip_data_task >> stage_ready_task
 stage_weather_data_task >> stage_ready_task
 stage_zone_data_task >> stage_ready_task
 
-stage_ready_task >> end_dag_task
-
 save_redshift_endpoint_task >> create_analytics_tables_task
 
-create_analytics_tables_task >> end_dag_task
+stage_ready_task >> insert_zone_data_task
+create_analytics_tables_task >> insert_zone_data_task
+
+insert_zone_data_task >> insert_trip_data_task
+
+insert_trip_data_task >> end_dag_task
