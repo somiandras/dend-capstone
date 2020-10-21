@@ -8,8 +8,7 @@ as (
             tpep_dropoff_datetime ||
             coalesce(passenger_count, 0) ||
             pulocationid ||
-            dolocationid ||
-            total_amount
+            dolocationid
         ) as trip_id,
         passenger_count,
         trip_distance,
