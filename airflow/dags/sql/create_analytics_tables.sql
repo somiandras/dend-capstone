@@ -8,12 +8,21 @@ create table if not exists analytics.zone (
 )
 diststyle all;
 
+create table if not exists analytics.weather(
+    date date primary key sortkey distkey,
+    wind float,
+    precip float,
+    snow float,
+    tmax float,
+    tmin float
+);
+
 create table if not exists analytics.trip (
     trip_id varchar primary key,
     passenger_count int,
     trip_distance float not null,
     trip_duration_sec int not null,
-    pickup_date date sortkey not null,
+    pickup_date date not null references analytics.weather(date) sortkey distkey,
     pickup_location_id int references analytics.zone(location_id) not null,
     dropoff_location_id int references analytics.zone(location_id) not null,
     rate_code varchar,
@@ -27,5 +36,4 @@ create table if not exists analytics.trip (
     congestion_surcharge float,
     total_amount float not null,
     total_amount_check boolean
-)
-diststyle even;
+);
