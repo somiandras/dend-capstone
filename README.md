@@ -16,9 +16,17 @@ For the project I assumed that all trips included in the source data belong to a
 
 ## Data Model
 
-The final data model is a star schema where the fact table contains trips with the fare amounts, dimension tables contain start and end location, weather details and time.
+The final data model is a (small) star schema where the fact table contains trips with the detailed fare amounts, while dimension tables contain start and end location and daily weather information.
 
-Based on this schema I also build an OLAP cube with geography, time and weather categories as dimensions.
+![ERD](img/erd.png)
+
+Distribution Styles:
+
+- Trips: `pickup_date` is the distribution key and sort key (this will require periodic repartitioning as new data comes in)
+- Weather: `date` is the distribution key and sort key (this will require periodic repartitioning as new data comes in)
+- Zones: this is a small table, distribution style is `ALL`
+
+Based on this schema I also built an OLAP cube with geography, time and weather categories as dimensions.
 
 ## Datasets
 
@@ -76,9 +84,20 @@ For the sake of practicing these technologies, I created tasks in my Airflow pip
   - If DAG is scheduled, import date range is between previous successful run date and current execution date
   - If DAG is run manually or there is no previous success date the import is run between the preset minimum date and current execution date
 
-#### 3.2 Final Load
+#### 3.2 Loading to Analytics Tables
 
-#### 3.3 Daily Runs
+- Final tables live under the `analytics` schema
+- Insertion is done via `PostgresOperators` with SQL statements in separate files
+- Insert tasks only rely on data in staging tables, therefore work in batch or incremental (scheduled) DAG runs
+- `analytics.zone` (dimension):
+  - primary key is `location_id` which maps to `pickup_location_id` and `dropoff_location_id` on the fact table
+  - it is truncated and reloaded with each import (this is a very small table)
+- `analytics.weather` (dimnension):
+  - primary key is the `date`, which maps to `pickup_date` on the fact table
+  - updated incrementally, new data is inserted and existing rows are updated with the incoming values
+- `analytics.trip` (the fact table)
+  - primary key is a hash value constructed from pickup/dropoff timestamps and location id and passenger count (this is a makeshift solution as the data source does not contain unique identifiers)
+  - also updated incrementally, with new rows inserted and any existing rows completely updated with the incoming data
 
 ## How to Run the Project
 
