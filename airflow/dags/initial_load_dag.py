@@ -52,32 +52,9 @@ save_redshift_endpoint_task = SaveRedshiftHostOperator(
     config=redshift_config,
 )
 
-create_trip_stage_table_task = PostgresOperator(
-    task_id="create_trip_stage_table",
-    sql=[
-        "create schema if not exists stage;",
-        "drop table if exists stage.trip",
-        """create table if not exists stage.trip (
-            VendorID int,
-            tpep_pickup_datetime timestamp,
-            tpep_dropoff_datetime timestamp,
-            passenger_count int,
-            trip_distance float,
-            RatecodeID int,
-            store_and_fwd_flag boolean,
-            PULocationID int,
-            DOLocationID int,
-            payment_type int,
-            fare_amount float,
-            extra float,
-            mta_tax float,
-            tip_amount float,
-            tolls_amount float,
-            improvement_surcharge float,
-            total_amount float,
-            congestion_surcharge float
-        );""",
-    ],
+create_stage_tables_task = PostgresOperator(
+    task_id="create_stage_tables",
+    sql="sql/create_stage_tables.sql",
     postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     dag=dag,
 )
@@ -92,29 +69,6 @@ stage_trip_data_task = StageTripData(
     s3_key="trip data",
 )
 
-create_weather_stage_table_task = PostgresOperator(
-    task_id="create_weather_stage_table",
-    sql=[
-        "create schema if not exists stage;",
-        "drop table if exists stage.weather",
-        """create table if not exists stage.weather (
-            STATION varchar,
-            NAME varchar,
-            LATITUDE float,
-            LONGITUDE float,
-            ELEVATION float,
-            DATE bigint,
-            AWND float,
-            PRCP float,
-            SNOW float,
-            TMAX float,
-            TMIN float
-        );""",
-    ],
-    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
-    dag=dag,
-)
-
 stage_weather_data_task = StageWeatherData(
     task_id="stage_weather_data",
     table="stage.weather",
@@ -123,22 +77,6 @@ stage_weather_data_task = StageWeatherData(
     s3_bucket="dend-capstone-somi",
     s3_key="weather",
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
-)
-
-create_zone_stage_table_task = PostgresOperator(
-    task_id="create_zone_stage_table",
-    sql=[
-        "create schema if not exists stage;",
-        "drop table if exists stage.zone",
-        """create table if not exists stage.zone (
-            LocationID int,
-            Borough varchar,
-            Zone varchar,
-            service_zone varchar
-        );""",
-    ],
-    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
-    dag=dag,
 )
 
 stage_zone_data_task = StageZoneData(
@@ -158,16 +96,14 @@ start_dag_task >> create_redshift_task
 create_redshift_task >> wait_for_redshift_task
 wait_for_redshift_task >> save_redshift_endpoint_task
 
-save_redshift_endpoint_task >> create_trip_stage_table_task
-create_trip_stage_table_task >> stage_trip_data_task
+save_redshift_endpoint_task >> create_stage_tables_task
+
+create_stage_tables_task >> stage_trip_data_task
+create_stage_tables_task >> stage_weather_data_task
+create_stage_tables_task >> stage_zone_data_task
+
 stage_trip_data_task >> stage_ready_task
-
-save_redshift_endpoint_task >> create_weather_stage_table_task
-create_weather_stage_table_task >> stage_weather_data_task
 stage_weather_data_task >> stage_ready_task
-
-save_redshift_endpoint_task >> create_zone_stage_table_task
-create_zone_stage_table_task >> stage_zone_data_task
 stage_zone_data_task >> stage_ready_task
 
 stage_ready_task >> end_dag_task
