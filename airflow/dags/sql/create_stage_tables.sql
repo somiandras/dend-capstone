@@ -5,17 +5,14 @@ drop table if exists stage.trip;
 drop table if exists stage.zone;
 
 create table if not exists stage.weather (
-    STATION varchar,
-    NAME varchar,
-    LATITUDE float,
-    LONGITUDE float,
-    ELEVATION float,
-    DATE bigint,
-    AWND float,
-    PRCP float,
-    SNOW float,
-    TMAX float,
-    TMIN float
+    station varchar,
+    name varchar,
+    date timestamp,
+    awnd float,
+    prcp float,
+    snow float,
+    tmax float,
+    tmin float
 );
 
 create table if not exists stage.zone (

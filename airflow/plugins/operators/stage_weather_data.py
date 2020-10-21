@@ -55,12 +55,13 @@ class StageWeatherData(BaseOperator):
                 truncate {self.table};
 
                 -- Copy from manifest
-                copy {self.table}
+                copy {self.table} (station, name, date, awnd, prcp, snow, tmax, tmin)
                 from '{manifest_path}'
                 access_key_id '{creds.access_key}'
                 secret_access_key '{creds.secret_key}'
                 region 'us-east-1'
-                json 'auto'
+                json 'auto ignorecase'
+                timeformat 'epochmillisecs'
                 manifest;
             """
         )
