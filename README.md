@@ -14,6 +14,12 @@ For the basis of the project I chose the famous __NYC taxi trips__ dataset. This
 
 For the project I assumed that all trips included in the source data belong to a single taxi company. The goal of the project is to setup a data warehouse on AWS that can provide the management of this imaginative taxi company with high level view and the possibility to drill down and gain deeper insights about the performance of the company.
 
+## Data Model
+
+The final data model is a star schema where the fact table contains trips with the fare amounts, dimension tables contain start and end location, weather details and time.
+
+Based on this schema I also build an OLAP cube with geography, time and weather categories as dimensions.
+
 ## Datasets
 
 ### 1. NYC Taxi & Limousine Commission (TLC) Trip Record Data
@@ -36,23 +42,39 @@ This is a separate data source which adds weather information to the trip data. 
 
 ## Technologies/Services Used
 
-- Airflow
-- S3
-- Amazon Redshift
+- **Storage:** AWS S3
+- **Workflow management:** Airflow
+- **Data Warehouse:** Amazon Redshift
+- **Supplementary tools:** PyData ecosystem (eg. Jupyter, pandas, etc.)
 
 ## Processing Steps
+
+I manage all data operations in an Airflow pipeline, from launching a Redshift cluster to creating the final data outputs. Only exception is weather data preprocessing, which I did in a separate Python script.
+
+\<PIPELINE IMAGE\>
 
 ### 1. Preprocessing
 
 The original csv file from NOAA contained daily observations from 134 weather stations in New York, New Jersey and Connecticut, from 2017-01-01 to 2020-07-31.
 
-In order to simulate loading from different formats and to preprocess the datafile, I filtered the columns, split up the csv file into daily JSON files, and uploaded them to the S3 bucket in the following format: `s3://dend-projects-somi/weather/<YEAR-MONTH>/weather-<DATE>.json`.
+In order to simulate loading from different formats and to preprocess the datafile, I filtered the columns, split up the csv file into daily JSON files, and uploaded them to the S3 bucket in the following format: `s3://dend-capstone-somi/weather/<YEAR-MONTH>/weather-<DATE>.json` (this is done in `preprocess_weather_data.py`).
 
 ### 2. Setting up Redshift
+
+For the sake of practicing these technologies, I created tasks in my Airflow pipeline to set up a Redshift cluster and save connection details into Airflow for later use. This way I can restart my project from scratch just by running the pipeline (if the Redshift cluster is already up and running the related tasks succeed quickly).
 
 ### 3. ETL
 
 #### 3.1 Staging
+
+- Data from the input sources is staged in Redshift tables under `stage` schema:
+  - `staging.trip`: data from the yellow cab trips data source for the current date range
+  - `staging.zone`: taxi zone identification data
+  - `staging.weather`: daily weather data for the current date range for all weather stations
+- Tables are (re)created each time the pipeline is run, making sure that no residual data from previous runs spills into the current operation.
+- Staging tasks are set up in a way, that they create meaningful results in scheduler DAG runs and ad-hoc (manual) runs:
+  - If DAG is scheduled, import date range is between previous successful run date and current execution date
+  - If DAG is run manually or there is no previous success date the import is run between the preset minimum date and current execution date
 
 #### 3.2 Final Load
 
@@ -70,12 +92,16 @@ In order to simulate loading from different formats and to preprocess the datafi
 
 ## Potential Improvements
 
-### Security
+1. **Redshift Setup:** In a real project creating Redshift cluster straight from Airflow wouldn't really make sense, but here this presented a great opportunity to practice Airflow and AWS infrastructure as code in the same exercise.
+2. **Data cleaning:** Even though I did some preprocessing and quality checks on the data, I could do more on cleaning and validating the input data. In a real life project this would be crucial. Here my focus was to set up the infrastructure and pipelines, accepting some implied assumptions about the data quality.
+3. **Security:** When setting up the infrastructure I mostly used default values and settings. In a real life project it would be crucial to ensure the security of the setup via proper configuration of VPCs, security groups, roles and user access management.
+4. **Custom operators:** Custom operators for staging the data look very similar at first sight, even though they differ in some key elements (query structure, S3 key construction, etc.). In a  larger setup it might be worth merging their functionality into a single staging operator and handle the logical differences inside this merged operator. For this project I considered as premature optimization.
+5. **Deploying pipelines:** I ran Airflow on my laptop which is obviously not a viable solution in a real setup. Properly deploying Airflow in the cloud with the appropriate resources and architecture and making sure that pipelines can run smoothly could be a project in itself.
 
 ## What If's
 
-### Whaat if the data was increased by 100x
+### What if the data was increased by 100x
 
-### Whaat if the pipelines would be run on a daily basis by 7 am every day
+### What if the pipelines would be run on a daily basis by 7 am every day
 
-### Whaat if the database needed to be accessed by 100+ people
+### What if the database needed to be accessed by 100+ people
