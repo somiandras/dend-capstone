@@ -59,8 +59,8 @@ create_trip_stage_table_task = PostgresOperator(
         "drop table if exists stage.trip",
         """create table if not exists stage.trip (
             VendorID int,
-            tpep_pickup_datetime varchar,
-            tpep_dropoff_datetime varchar,
+            tpep_pickup_datetime timestamp,
+            tpep_dropoff_datetime timestamp,
             passenger_count int,
             trip_distance float,
             RatecodeID int,
