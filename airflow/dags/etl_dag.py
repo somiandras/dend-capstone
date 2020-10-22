@@ -8,6 +8,7 @@ from airflow.operators import (
     StageTripData,
     StageWeatherData,
     StageZoneData,
+    CheckNullValuesOperator,
 )
 
 redshift_config = ConfigParser()
@@ -58,6 +59,13 @@ stage_zone_data_task = StageZoneData(
     dag=dag,
 )
 
+check_nulls_task = CheckNullValuesOperator(
+    task_id="check_null_values",
+    redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    query="sql/check_null.sql",
+    dag=dag,
+)
+
 
 insert_zone_data_task = PostgresOperator(
     task_id="insert_zone_data",
@@ -90,9 +98,13 @@ start_dag_task >> stage_trip_data_task
 start_dag_task >> stage_weather_data_task
 start_dag_task >> stage_zone_data_task
 
-stage_trip_data_task >> insert_zone_data_task
-stage_zone_data_task >> insert_zone_data_task
-stage_weather_data_task >> insert_weather_data_task
+stage_trip_data_task >> check_nulls_task
+stage_zone_data_task >> check_nulls_task
+stage_weather_data_task >> check_nulls_task
+
+check_nulls_task >> insert_zone_data_task
+check_nulls_task >> insert_zone_data_task
+check_nulls_task >> insert_weather_data_task
 
 insert_zone_data_task >> insert_trip_data_task
 
