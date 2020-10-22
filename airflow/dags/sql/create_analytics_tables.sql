@@ -1,12 +1,9 @@
-create schema if not exists analytics;
-
 create table if not exists analytics.zone (
     location_id int primary key,
     borough varchar,
     zone varchar,
     service_zone varchar
-)
-diststyle all;
+) diststyle all;
 
 create table if not exists analytics.weather(
     date date primary key sortkey distkey,

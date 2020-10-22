@@ -52,6 +52,16 @@ save_redshift_endpoint_task = SaveRedshiftHostOperator(
     config=redshift_config,
 )
 
+create_schemas_task = PostgresOperator(
+    task_id="create_schemas",
+    sql=[
+        "create schema if not exists stage;",
+        "create schema if not exists analytics;",
+    ],
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
+)
+
 create_stage_tables_task = PostgresOperator(
     task_id="create_stage_tables",
     sql="sql/create_stage_tables.sql",
@@ -87,8 +97,6 @@ stage_zone_data_task = StageZoneData(
     s3_key="misc/taxi _zone_lookup.csv",
     dag=dag,
 )
-
-stage_ready_task = DummyOperator(task_id="stage_ready", dag=dag)
 
 create_analytics_tables_task = PostgresOperator(
     task_id="create_analytics_tables",
@@ -126,8 +134,9 @@ end_dag_task = DummyOperator(task_id="end_dag", dag=dag)
 start_dag_task >> create_redshift_task
 create_redshift_task >> wait_for_redshift_task
 wait_for_redshift_task >> save_redshift_endpoint_task
+save_redshift_endpoint_task >> create_schemas_task
 
-save_redshift_endpoint_task >> create_stage_tables_task
+create_schemas_task >> create_stage_tables_task
 
 create_stage_tables_task >> stage_trip_data_task
 create_stage_tables_task >> stage_weather_data_task
@@ -137,7 +146,8 @@ stage_trip_data_task >> insert_zone_data_task
 stage_zone_data_task >> insert_zone_data_task
 stage_weather_data_task >> insert_weather_data_task
 
-save_redshift_endpoint_task >> create_analytics_tables_task
+
+create_schemas_task >> create_analytics_tables_task
 
 create_analytics_tables_task >> insert_zone_data_task
 create_analytics_tables_task >> insert_weather_data_task

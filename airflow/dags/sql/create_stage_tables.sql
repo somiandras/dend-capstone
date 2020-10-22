@@ -1,7 +1,7 @@
-create schema if not exists stage;
-
 drop table if exists stage.weather;
+
 drop table if exists stage.trip;
+
 drop table if exists stage.zone;
 
 create table if not exists stage.weather (
@@ -42,4 +42,3 @@ create table if not exists stage.trip (
     total_amount float,
     congestion_surcharge float
 );
-
