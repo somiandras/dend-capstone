@@ -2,6 +2,24 @@
 create temp table trip_transformed
 distkey(pickup_date)
 as (
+    -- Removing trips that either have chargeback counter events or
+    -- or have missing distance/provider
+    with valid_trips as (
+        select trip1.*
+        from (
+            select *
+            from stage.trip
+            where total_amount > 0
+        ) trip1
+        left join (
+            select *
+            from stage.trip
+            where total_amount < 0
+        ) trip2 using(tpep_pickup_datetime, tpep_dropoff_datetime, pulocationid, dolocationid)
+        where
+            trip2.tpep_pickup_datetime is null and
+            trip1.vendorid is not null
+    )
     select
         md5(
             tpep_pickup_datetime ||
@@ -49,10 +67,10 @@ as (
             + improvement_surcharge
             + congestion_surcharge
         ) = total_amount as total_amount_check
-    from stage.trip
+    from valid_trips
 );
 
-/* Delete rows that are also in the new data */
+/* Delete rows from existing that are also in new */
 delete from analytics.trip
 using trip_transformed
 where analytics.trip.trip_id = trip_transformed.trip_id;

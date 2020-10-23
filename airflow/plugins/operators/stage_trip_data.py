@@ -72,11 +72,12 @@ class StageTripData(BaseOperator):
                 ignoreheader 1
                 manifest;
 
-                -- Remove trips that fall outside of date range
+                -- Remove trips that fall outside of date range or has no trip distance
                 delete from {self.table}
                 where
                     tpep_pickup_datetime < '{start_date.to_date_string()}'::date or
-                    tpep_pickup_datetime > '{end_date.to_date_string()}'::date;
+                    tpep_pickup_datetime > '{end_date.to_date_string()}'::date or
+                    coalesce(trip_distance, 0) = 0
             """
         )
         logging.info(f"Copied data from {source_path}")
