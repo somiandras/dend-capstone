@@ -6,7 +6,6 @@ as (
         md5(
             tpep_pickup_datetime ||
             tpep_dropoff_datetime ||
-            coalesce(passenger_count, 0) ||
             pulocationid ||
             dolocationid
         ) as trip_id,

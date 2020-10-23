@@ -4,6 +4,7 @@ from operators.stage_trip_data import StageTripData
 from operators.stage_weather_data import StageWeatherData
 from operators.stage_zone import StageZoneData
 from operators.check_null_operator import CheckNullValuesOperator
+from operators.check_unique_operator import CheckUniqueValuesOperator
 
 __all__ = [
     CreateRedshiftClusterOperator,
@@ -12,4 +13,5 @@ __all__ = [
     StageWeatherData,
     StageZoneData,
     CheckNullValuesOperator,
+    CheckUniqueValuesOperator,
 ]

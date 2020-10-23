@@ -12,4 +12,5 @@ class CapstonePlugin(AirflowPlugin):
         operators.StageWeatherData,
         operators.StageZoneData,
         operators.CheckNullValuesOperator,
+        operators.CheckUniqueValuesOperator,
     ]

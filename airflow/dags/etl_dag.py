@@ -9,15 +9,14 @@ from airflow.operators import (
     StageWeatherData,
     StageZoneData,
     CheckNullValuesOperator,
+    CheckUniqueValuesOperator,
 )
 
 redshift_config = ConfigParser()
 redshift_config.read("config/redshift.cfg")
 
 default_params = dict(
-    owner="somiandras",
-    start_date=datetime(2020, 10, 18, 0, 0, 0),
-    retries=0,
+    owner="somiandras", start_date=datetime(2020, 10, 18, 0, 0, 0), retries=0,
 )
 
 dag = DAG(
@@ -78,9 +77,32 @@ check_nulls_task = CheckNullValuesOperator(
     ],
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     dag=dag,
+)
+
+check_unique_tasks = CheckUniqueValuesOperator(
+    task_id="check_unique_values",
+    checks=[
+        ("stage.zone", ["locationid"]),
+        ("stage.weather", ["station", "date"]),
+        (
+            "stage.trip",
+            [
+                "tpep_pickup_datetime",
+                "tpep_dropoff_datetime",
+                "pulocationid",
+                "dolocationid",
+                "total_amount",
+                "payment_type",
+                "trip_distance",
+            ],
+        ),
+    ],
+    redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     dag=dag,
 )
 
+stage_ready_task = DummyOperator(task_id="stage_ready", dag=dag)
+checks_ready_task = DummyOperator(task_id="checks_ready", dag=dag)
 
 insert_zone_data_task = PostgresOperator(
     task_id="insert_zone_data",
@@ -113,13 +135,18 @@ start_dag_task >> stage_trip_data_task
 start_dag_task >> stage_weather_data_task
 start_dag_task >> stage_zone_data_task
 
-stage_trip_data_task >> check_nulls_task
-stage_zone_data_task >> check_nulls_task
-stage_weather_data_task >> check_nulls_task
+stage_trip_data_task >> stage_ready_task
+stage_zone_data_task >> stage_ready_task
+stage_weather_data_task >> stage_ready_task
 
-check_nulls_task >> insert_zone_data_task
-check_nulls_task >> insert_zone_data_task
-check_nulls_task >> insert_weather_data_task
+stage_ready_task >> check_nulls_task
+stage_ready_task >> check_unique_tasks
+
+check_nulls_task >> checks_ready_task
+check_unique_tasks >> checks_ready_task
+
+checks_ready_task >> insert_zone_data_task
+checks_ready_task >> insert_weather_data_task
 
 insert_zone_data_task >> insert_trip_data_task
 
