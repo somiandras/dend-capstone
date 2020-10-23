@@ -61,8 +61,23 @@ stage_zone_data_task = StageZoneData(
 
 check_nulls_task = CheckNullValuesOperator(
     task_id="check_null_values",
+    checks=[
+        ("stage.weather", ["date"]),
+        (
+            "stage.trip",
+            [
+                "trip_distance",
+                "tpep_pickup_datetime",
+                "tpep_dropoff_datetime",
+                "PULocationID",
+                "DOLocationID",
+                "total_amount",
+            ],
+        ),
+        ("stage.zone", ["LocationID", "Borough", "Zone", "service_zone",]),
+    ],
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
-    query="sql/check_null.sql",
+    dag=dag,
     dag=dag,
 )
 

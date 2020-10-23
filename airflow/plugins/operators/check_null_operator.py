@@ -13,36 +13,32 @@ class CheckNullValuesOperator(BaseOperator):
 
     @apply_defaults
     def __init__(
-        self,
-        *args,
-        redshift_conn_id="redshift",
-        query=None,
-        **kwargs,
+        self, *args, redshift_conn_id="redshift", query=None, checks=None, **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
-        self.query = query
+        self.checks = checks
 
     def execute(self, context):
-        dag_folder = context["conf"].get("core", "dags_folder")
-        filepath = f"{dag_folder}/{self.query}"
-        with open(filepath) as f:
-            querystr = f.read().strip()
-
         postgres_hook = PostgresHook(self.redshift_conn_id)
-        splitted = [q for q in querystr.split(";") if len(q) > 1]
-        for query in splitted:
+        query_template = """
+            select count(*)
+            from {table}
+            where {filters};
+        """
+
+        for (table, cols) in self.checks:
+            filters = " or ".join([f"{col} is null" for col in cols])
+            query = query_template.format(table=table, filters=filters)
             logging.info(query)
-            table_name_regex = re.compile(r"select\scount\(\*\)\sfrom\s(.*)\swhere.*")
-            table_name = table_name_regex.match(query.strip()).group(1)
-            results = postgres_hook.get_records(f"{query};")
+            results = postgres_hook.get_records(query)
             if results is None:
                 raise AirflowFailException(
                     f"Quality check did not return any results: {query.strip}"
                 )
             elif results[0][0] != 0:
                 raise AirflowFailException(
-                    f"{results[0][0]} rows with disallowed NULLs in {table_name}"
+                    f"{results[0][0]} rows with disallowed NULLs in {table}"
                 )
             else:
-                logging.info(f"NULL check passed for {table_name}")
+                logging.info(f"NULL check passed for {table}")
