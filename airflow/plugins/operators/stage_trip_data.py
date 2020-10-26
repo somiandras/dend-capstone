@@ -62,10 +62,6 @@ class StageTripData(BaseOperator):
                 delimiter ','
                 ignoreheader 1
                 manifest;
-
-                -- Remove trips that has no trip distance
-                delete from {self.table}
-                where coalesce(trip_distance, 0) = 0 or vendorid is null;
             """
         )
         logging.info(f"Copied data from {source_path}")

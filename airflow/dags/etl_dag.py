@@ -55,6 +55,16 @@ stage_trip_data_task = StageTripData(
     s3_key="trip data",
 )
 
+clean_trip_stage_data_task = PostgresOperator(
+    task_id="clean_staged_trips",
+    sql="""
+        delete from stage."trip_{{ ds }}"
+        where coalesce(trip_distance, 0) = 0 or vendorid is null;
+    """,
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
+)
+
 stage_weather_data_task = StageWeatherData(
     task_id="stage_weather_data",
     table='stage."weather_{{ ds }}"',
@@ -62,6 +72,16 @@ stage_weather_data_task = StageWeatherData(
     s3_bucket="dend-capstone-somi",
     s3_key="weather",
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+)
+
+clean_weather_stage_data_task = PostgresOperator(
+    task_id="clean_staged_weather_data",
+    sql="""
+        delete from stage."weather_{{ ds }}"
+        where station != 'USW00094728';
+    """,
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
 )
 
 stage_zone_data_task = StageZoneData(
@@ -163,9 +183,12 @@ create_stage_tables_task >> stage_trip_data_task
 create_stage_tables_task >> stage_weather_data_task
 create_stage_tables_task >> stage_zone_data_task
 
-stage_trip_data_task >> stage_ready_task
+stage_trip_data_task >> clean_trip_stage_data_task
+stage_weather_data_task >> clean_weather_stage_data_task
+
+clean_trip_stage_data_task >> stage_ready_task
 stage_zone_data_task >> stage_ready_task
-stage_weather_data_task >> stage_ready_task
+clean_weather_stage_data_task >> stage_ready_task
 
 stage_ready_task >> check_nulls_task
 stage_ready_task >> check_unique_tasks

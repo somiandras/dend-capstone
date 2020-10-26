@@ -60,10 +60,6 @@ class StageWeatherData(BaseOperator):
                 json 'auto ignorecase'
                 timeformat 'epochmillisecs'
                 manifest;
-
-                -- Delete other stations
-                delete from {self.table}
-                where station != 'USW00094728'
             """
         )
         logging.info(f"Copied data from {source_path}")
