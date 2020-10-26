@@ -15,9 +15,7 @@ redshift_config.read("config/redshift.cfg")
 redshift_cluster_id = redshift_config.get("CLUSTER", "CLUSTER_ID")
 
 default_params = dict(
-    owner="somiandras",
-    start_date=datetime(2020, 10, 18, 0, 0, 0),
-    retries=0,
+    owner="somiandras", start_date=datetime(2020, 10, 18, 0, 0, 0), retries=0,
 )
 
 dag = DAG(
@@ -31,9 +29,7 @@ dag = DAG(
 start_dag_task = DummyOperator(task_id="start_dag", dag=dag)
 
 create_redshift_task = CreateRedshiftClusterOperator(
-    task_id="create_redshift_cluster",
-    dag=dag,
-    config=redshift_config,
+    task_id="create_redshift_cluster", dag=dag, config=redshift_config,
 )
 
 wait_for_redshift_task = AwsRedshiftClusterSensor(
@@ -59,14 +55,6 @@ create_schemas_task = PostgresOperator(
     dag=dag,
 )
 
-create_stage_tables_task = PostgresOperator(
-    task_id="create_stage_tables",
-    sql="sql/create_stage_tables.sql",
-    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
-    dag=dag,
-)
-
-
 create_analytics_tables_task = PostgresOperator(
     task_id="create_analytics_tables",
     sql="sql/create_analytics_tables.sql",
@@ -82,8 +70,6 @@ create_redshift_task >> wait_for_redshift_task
 wait_for_redshift_task >> save_redshift_endpoint_task
 save_redshift_endpoint_task >> create_schemas_task
 
-create_schemas_task >> create_stage_tables_task
 create_schemas_task >> create_analytics_tables_task
 
-create_stage_tables_task >> end_dag_task
 create_analytics_tables_task >> end_dag_task

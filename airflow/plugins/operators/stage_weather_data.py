@@ -22,7 +22,6 @@ class StageWeatherData(BaseOperator):
         s3_bucket=None,
         s3_key=None,
         manifest_bucket="dend-capstone-somi",
-        min_date=None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -32,15 +31,10 @@ class StageWeatherData(BaseOperator):
         self.s3_key = s3_key
         self.manifest_bucket = manifest_bucket
         self.table = table
-        self.min_date = min_date
 
     def execute(self, context):
-        end_date = context["execution_date"]
-        try:
-            start_date = context["prev_execution_date_success"].add(days=1)
-        except AttributeError:
-            start_date = pendulum.instance(self.min_date)
-
+        end_date = context["execution_date"].subtract(days=1)
+        start_date = context["execution_date"].subtract(months=1)
         logging.info(f"Importing from {start_date} to {end_date}")
 
         manifest_path = self.create_manifest_file(start_date, end_date)

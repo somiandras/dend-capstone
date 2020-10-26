@@ -9,5 +9,5 @@ insert into analytics.weather
         n.tmin
     from stage."weather_{{ ds }}" as n
     left join analytics.weather as existing using(date)
-    where n.date != existing.date
+    where existing.date is null
 );

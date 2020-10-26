@@ -29,7 +29,6 @@ class StageTripData(BaseOperator):
         s3_bucket=None,
         s3_key=None,
         manifest_bucket="dend-capstone-somi",
-        min_date=None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -39,17 +38,12 @@ class StageTripData(BaseOperator):
         self.s3_key = s3_key
         self.manifest_bucket = manifest_bucket
         self.table = table
-        self.min_date = min_date
 
     def execute(self, context):
-        end_date = context["execution_date"]
-        try:
-            start_date = context["prev_execution_date_success"].add(days=1)
-        except AttributeError:
-            start_date = pendulum.instance(self.min_date)
+        end_date = context["execution_date"].subtract(days=1)
+        start_date = context["execution_date"].subtract(months=1)
 
         logging.info(f"Importing from {start_date} to {end_date}")
-
         manifest_path = self.create_manifest_file(start_date, end_date)
 
         aws_hook = AwsHook(self.aws_credentials_id)
@@ -70,12 +64,9 @@ class StageTripData(BaseOperator):
                 ignoreheader 1
                 manifest;
 
-                -- Remove trips that fall outside of date range or has no trip distance
+                -- Remove trips that has no trip distance
                 delete from {self.table}
-                where
-                    tpep_pickup_datetime < '{start_date.to_date_string()}'::date or
-                    tpep_pickup_datetime > '{end_date.to_date_string()}'::date or
-                    coalesce(trip_distance, 0) = 0
+                where coalesce(trip_distance, 0) = 0 or vendorid is null;
             """
         )
         logging.info(f"Copied data from {source_path}")

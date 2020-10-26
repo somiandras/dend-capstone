@@ -16,15 +16,20 @@ redshift_config = ConfigParser()
 redshift_config.read("config/redshift.cfg")
 
 default_params = dict(
-    owner="somiandras", start_date=datetime(2020, 10, 18, 0, 0, 0), retries=0,
+    owner="somiandras",
+    retries=0,
+    depends_on_past=False,
+    start_date=datetime(2020, 1, 1, 0, 0, 0),
+    end_date=datetime(2020, 7, 1, 0, 0, 0),
+    email_on_failure=False,
+    email_on_retry=False,
 )
 
 dag = DAG(
     dag_id="etl_dag",
-    default_args=default_params,
-    schedule_interval=None,
     description="Load data to Redshift from S3",
-    start_date=datetime.utcnow(),
+    default_args=default_params,
+    schedule_interval="@monthly",
 )
 
 start_dag_task = DummyOperator(task_id="start_dag", dag=dag)
@@ -113,7 +118,7 @@ insert_zone_data_task = PostgresOperator(
     task_id="insert_zone_data",
     sql=[
         "truncate analytics.zone;",
-        'insert into analytics.zone select * from stage."zone_{{ ds }};"',
+        'insert into analytics.zone select * from stage."zone_{{ ds }}";',
     ],
     postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     dag=dag,
