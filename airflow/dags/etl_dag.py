@@ -1,3 +1,8 @@
+"""
+Creates Airflow DAG for staging, filtering/cleaning, transforming and
+loading trip, weather and taxi zone data into final analytics tables.
+"""
+
 from configparser import ConfigParser
 from datetime import datetime
 

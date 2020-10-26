@@ -1,3 +1,8 @@
+"""
+Sets up Airflow DAG for creating Redshift cluster, saving connection
+details and creating the necessary schemas and final tables.
+"""
+
 from configparser import ConfigParser
 from datetime import datetime
 
