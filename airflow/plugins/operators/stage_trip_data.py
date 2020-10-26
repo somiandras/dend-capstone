@@ -58,9 +58,6 @@ class StageTripData(BaseOperator):
         redshift_hook = PostgresHook(self.redshift_conn_id)
         redshift_hook.run(
             f"""
-                -- Clear staging table
-                truncate {self.table};
-
                 -- Copy from manifest
                 copy {self.table}
                 from '{manifest_path}'

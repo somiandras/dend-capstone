@@ -29,6 +29,13 @@ dag = DAG(
 
 start_dag_task = DummyOperator(task_id="start_dag", dag=dag)
 
+clear_stage_task = PostgresOperator(
+    task_id="clear_stage_tables",
+    dag=dag,
+    sql=["truncate stage.trip;", "truncate stage.weather;", "truncate stage.zone;",],
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+)
+
 stage_trip_data_task = StageTripData(
     task_id="stage_trip_data",
     table="stage.trip",
@@ -130,10 +137,11 @@ insert_trip_data_task = PostgresOperator(
 
 end_dag_task = DummyOperator(task_id="end_dag", dag=dag)
 
+start_dag_task >> clear_stage_task
 
-start_dag_task >> stage_trip_data_task
-start_dag_task >> stage_weather_data_task
-start_dag_task >> stage_zone_data_task
+clear_stage_task >> stage_trip_data_task
+clear_stage_task >> stage_weather_data_task
+clear_stage_task >> stage_zone_data_task
 
 stage_trip_data_task >> stage_ready_task
 stage_zone_data_task >> stage_ready_task
