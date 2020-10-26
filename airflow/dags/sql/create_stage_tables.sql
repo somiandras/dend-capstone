@@ -1,3 +1,6 @@
+/* Create stage tables. Names are templated with the current execution
+date for individual DAG runds */
+
 drop table if exists stage."weather_{{ ds }}";
 
 drop table if exists stage."trip_{{ ds }}";

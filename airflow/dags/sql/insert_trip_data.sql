@@ -1,3 +1,6 @@
+/* Insert filtered and transformed trip data from staging table. Staging
+table name is templated for current execution date. */
+
 /* Transformed columns from stage for upserting into analytics */
 create temp table trip_transformed
 distkey(pickup_date)

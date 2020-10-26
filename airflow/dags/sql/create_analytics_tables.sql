@@ -1,3 +1,5 @@
+/* Create final data tables under analytics schema */
+
 create table if not exists analytics.zone (
     location_id int primary key,
     borough varchar,

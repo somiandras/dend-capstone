@@ -1,3 +1,6 @@
+/* Insert new weather data from staging table. Staging table is
+templated for execution date. */
+
 insert into analytics.weather
 (
     select
