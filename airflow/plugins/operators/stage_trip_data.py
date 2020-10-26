@@ -16,6 +16,7 @@ class StageTripData(BaseOperator):
     starting from `min_date`.
     """
 
+    template_fields = ("table",)
     ui_color = "#75e1ff"
 
     @apply_defaults

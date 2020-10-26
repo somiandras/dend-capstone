@@ -8,12 +8,12 @@ as (
         select trip1.*
         from (
             select *
-            from stage.trip
+            from stage."trip_{{ ds }}"
             where total_amount > 0
         ) trip1
         left join (
             select *
-            from stage.trip
+            from stage."trip_{{ ds }}"
             where total_amount < 0
         ) trip2 using(tpep_pickup_datetime, tpep_dropoff_datetime, pulocationid, dolocationid)
         where

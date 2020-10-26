@@ -29,7 +29,8 @@ class CheckNullValuesOperator(BaseOperator):
 
         for (table, cols) in self.checks:
             filters = " or ".join([f"{col} is null" for col in cols])
-            query = query_template.format(table=table, filters=filters)
+            table_name = f'stage."{table}_{context["ds"]}"'
+            query = query_template.format(table=table_name, filters=filters)
             logging.info(query)
             results = postgres_hook.get_records(query)
             if results is None:

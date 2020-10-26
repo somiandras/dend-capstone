@@ -1,10 +1,10 @@
-drop table if exists stage.weather;
+drop table if exists stage."weather_{{ ds }}";
 
-drop table if exists stage.trip;
+drop table if exists stage."trip_{{ ds }}";
 
-drop table if exists stage.zone;
+drop table if exists stage."zone_{{ ds }}";
 
-create table if not exists stage.weather (
+create table if not exists stage."weather_{{ ds }}" (
     station varchar,
     name varchar,
     date timestamp,
@@ -15,14 +15,14 @@ create table if not exists stage.weather (
     tmin float
 );
 
-create table if not exists stage.zone (
+create table if not exists stage."zone_{{ ds }}" (
     LocationID int,
     Borough varchar,
     Zone varchar,
     service_zone varchar
 );
 
-create table if not exists stage.trip (
+create table if not exists stage."trip_{{ ds }}" (
     VendorID int,
     tpep_pickup_datetime timestamp,
     tpep_dropoff_datetime timestamp,

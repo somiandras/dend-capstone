@@ -10,6 +10,7 @@ import pendulum
 
 
 class StageZoneData(BaseOperator):
+    template_fields = ("table",)
     ui_color = "#75e1ff"
 
     def __init__(

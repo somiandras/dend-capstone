@@ -30,7 +30,8 @@ class CheckUniqueValuesOperator(BaseOperator):
 
         for (table, cols) in self.checks:
             group_cols = ", ".join(cols)
-            query = query_template.format(table=table, group_cols=group_cols)
+            table_name = f'stage."{table}_{context["ds"]}"'
+            query = query_template.format(table=table_name, group_cols=group_cols)
             logging.info(query)
             results = postgres_hook.get_records(query)
             if len(results) == 0:

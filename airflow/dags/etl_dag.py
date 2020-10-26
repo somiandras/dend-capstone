@@ -29,17 +29,16 @@ dag = DAG(
 
 start_dag_task = DummyOperator(task_id="start_dag", dag=dag)
 
-clear_stage_task = PostgresOperator(
-    task_id="clear_stage_tables",
-    dag=dag,
-    sql=["truncate stage.trip;", "truncate stage.weather;", "truncate stage.zone;",],
+create_stage_tables_task = PostgresOperator(
+    task_id="create_stage_tables",
+    sql="sql/create_stage_tables.sql",
     postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
 )
 
 stage_trip_data_task = StageTripData(
     task_id="stage_trip_data",
-    table="stage.trip",
-    min_date=datetime(2020, 6, 1),
+    table='stage."trip_{{ ds }}"',
     dag=dag,
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     s3_bucket="nyc-tlc",
@@ -48,8 +47,7 @@ stage_trip_data_task = StageTripData(
 
 stage_weather_data_task = StageWeatherData(
     task_id="stage_weather_data",
-    table="stage.weather",
-    min_date=datetime(2020, 6, 1),
+    table='stage."weather_{{ ds }}"',
     dag=dag,
     s3_bucket="dend-capstone-somi",
     s3_key="weather",
@@ -58,7 +56,7 @@ stage_weather_data_task = StageWeatherData(
 
 stage_zone_data_task = StageZoneData(
     task_id="stage_zone_data",
-    table="stage.zone",
+    table='stage."zone_{{ ds }}"',
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     s3_bucket="nyc-tlc",
     s3_key="misc/taxi _zone_lookup.csv",
@@ -68,9 +66,9 @@ stage_zone_data_task = StageZoneData(
 check_nulls_task = CheckNullValuesOperator(
     task_id="check_null_values",
     checks=[
-        ("stage.weather", ["date"]),
+        ("weather", ["date"]),
         (
-            "stage.trip",
+            "trip",
             [
                 "trip_distance",
                 "tpep_pickup_datetime",
@@ -80,7 +78,7 @@ check_nulls_task = CheckNullValuesOperator(
                 "total_amount",
             ],
         ),
-        ("stage.zone", ["LocationID", "Borough", "Zone", "service_zone",]),
+        ("zone", ["LocationID", "Borough", "Zone", "service_zone",]),
     ],
     redshift_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     dag=dag,
@@ -89,10 +87,10 @@ check_nulls_task = CheckNullValuesOperator(
 check_unique_tasks = CheckUniqueValuesOperator(
     task_id="check_unique_values",
     checks=[
-        ("stage.zone", ["locationid"]),
-        ("stage.weather", ["station", "date"]),
+        ("zone", ["locationid"]),
+        ("weather", ["station", "date"]),
         (
-            "stage.trip",
+            "trip",
             [
                 "tpep_pickup_datetime",
                 "tpep_dropoff_datetime",
@@ -115,7 +113,7 @@ insert_zone_data_task = PostgresOperator(
     task_id="insert_zone_data",
     sql=[
         "truncate analytics.zone;",
-        "insert into analytics.zone select * from stage.zone;",
+        'insert into analytics.zone select * from stage."zone_{{ ds }};"',
     ],
     postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
     dag=dag,
@@ -135,13 +133,25 @@ insert_trip_data_task = PostgresOperator(
     dag=dag,
 )
 
+
+remove_stage_task = PostgresOperator(
+    task_id="remove_stage_tables",
+    sql=[
+        'drop table if exists stage."trip_{{ ds }}";',
+        'drop table if exists stage."weather_{{ ds }}";',
+        'drop table if exists stage."zone_{{ ds }}";',
+    ],
+    postgres_conn_id=redshift_config.get("CLUSTER", "CLUSTER_ID"),
+    dag=dag,
+)
+
 end_dag_task = DummyOperator(task_id="end_dag", dag=dag)
 
-start_dag_task >> clear_stage_task
+start_dag_task >> create_stage_tables_task
 
-clear_stage_task >> stage_trip_data_task
-clear_stage_task >> stage_weather_data_task
-clear_stage_task >> stage_zone_data_task
+create_stage_tables_task >> stage_trip_data_task
+create_stage_tables_task >> stage_weather_data_task
+create_stage_tables_task >> stage_zone_data_task
 
 stage_trip_data_task >> stage_ready_task
 stage_zone_data_task >> stage_ready_task
@@ -158,5 +168,7 @@ checks_ready_task >> insert_weather_data_task
 
 insert_zone_data_task >> insert_trip_data_task
 
-insert_trip_data_task >> end_dag_task
-insert_weather_data_task >> end_dag_task
+insert_trip_data_task >> remove_stage_task
+insert_weather_data_task >> remove_stage_task
+
+remove_stage_task >> end_dag_task
