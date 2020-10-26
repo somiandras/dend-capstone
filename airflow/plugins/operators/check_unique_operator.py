@@ -13,8 +13,17 @@ class CheckUniqueValuesOperator(BaseOperator):
 
     @apply_defaults
     def __init__(
-        self, *args, redshift_conn_id="redshift", query=None, checks=None, **kwargs,
+        self, *args, redshift_conn_id="redshift", checks=None, **kwargs,
     ):
+        """
+        Checks uniqueness in given (table, columns) combinations, and
+        raised if any of the rows are not unique.
+
+        :param redshift_conn_id: Airflow connection id, defaults to "redshift"
+        :type redshift_conn_id: str, optional
+        :param checks: table and columns where uniiqueness should be checked, defaults to None
+        :type checks: list of (str, list of strings) tuples, optional
+        """
         super().__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
         self.checks = checks

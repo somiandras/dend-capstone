@@ -10,6 +10,11 @@ import pendulum
 
 
 class StageWeatherData(BaseOperator):
+    """
+    Operator for staging NYC weather data to Redshift. Loads data for
+    previous month at execution date.
+    """
+
     template_fields = ("table",)
     ui_color = "#75e1ff"
 

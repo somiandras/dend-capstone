@@ -12,8 +12,7 @@ import pendulum
 class StageTripData(BaseOperator):
     """
     Operator for staging NYC taxi trip data to Redshift. Loads data for
-    period since last successful run if there is one. If not, it imports
-    starting from `min_date`.
+    previous month at execution date.
     """
 
     template_fields = ("table",)

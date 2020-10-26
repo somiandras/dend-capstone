@@ -10,6 +10,10 @@ import pendulum
 
 
 class StageZoneData(BaseOperator):
+    """
+    Operator for staging NYC taxi zone data to Redshift.
+    """
+
     template_fields = ("table",)
     ui_color = "#75e1ff"
 
