@@ -12,7 +12,7 @@ For the basis of the project I chose the famous __NYC taxi trips__ dataset. This
 
 ## Goal of the Project
 
-For the project I assumed that all trips included in the source data belong to a single taxi company. The goal of the project is to setup a data warehouse on AWS that can provide the management of this imaginative taxi company with high level view and the possibility to drill down and gain deeper insights about the performance of the company.
+For the project I assumed that all trips included in the source data belong to a single taxi company. The goal of the project is to setup a data warehouse on AWS that can provide the management of this taxi company with high level view and the possibility to drill down and gain deeper insights about the performance of the company.
 
 ## Datasets
 
